@@ -1,0 +1,488 @@
+﻿<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>万年历</title>
+<style type="text/css">
+#time_organ{width:316px;height:296px;border:1px solid RGB(206,206,206);border-radius:10px;left:88px;background-color:transparent;
+	margin-top:2px;position:relative;z-index:88px;	}
+/*显示时间input文本框设置*/
+#showtime{text-align:center;color:red;font-weight:bold;width:188px;height:16px;font-size:16px;}
+/*div层的控制*/
+#time_organ div{width:297px;border:1px solid #ccc;border-radius:6px;position:absolute;margin-left:8px;}
+/*div层的顶部*/
+#organTop{margin:0 auto;margin-top:4px;text-align:center;line-height:23px;font-size:13px;font-weight:bold;height:23px;}
+/*时间控件的月份层*/
+.organMonth{margin-top:32px;height:28px;line-height:28px;}
+.organMonth .a1{float:left;width:38px;margin-left:16px;cursor:pointer;}
+.organMonth #month{float:left;width:60px;margin-left:8px;cursor:pointer;margin-top:4px;}
+.organMonth .a2{width:38px;float:right;cursor:pointer;}
+.organMonth #year{float:right;width:80px;margin-right:8px;cursor:pointer;margin-top:4px;}
+.MonthCenter{text-align:center;width:170px;font-weight:bold;font-size:16px;margin-left:36px;cursor:pointer;}
+/*时间控件中间,星期和日期*/
+.organCenter{top:66px;height:193px;}
+.organCenter table{border:1px solid #ccc;width:284px;height:178px;margin-top:6px;margin-left:6px;}
+/*日期层星期控制*/
+.organCenter .week th{height:26px;line-height:26px;width:38px;text-align:center;font-weight:bold;}
+/*日期层号数控制*/
+.organCenter .week td{width:38px;text-align:center;cursor:pointer;
+}
+/*今天的日期单元格设置*/
+.organCenter .week .nowDate{font-weight:bold;color:red;}
+/*时间控件底部*/
+.organFoot{margin-top:266px;height:25px;line-height:25px;}
+/*时间控件底部左边*/
+#time_organ .FootLeft{width:136px;border:none;border-right:1px dotted #ccc;-moz-border-radius:none;-webket-border-radius:none;}
+.FootLeft span{margin-left:20px;cursor:pointer;}
+.FootLeft .a3{float:left;width:23px;margin-left:8px;cursor:pointer;}
+.FootLeft .a4{width:23px;float:right;cursor:pointer;}
+#time_organ #flnew{width:88px;margin:3px auto 8px 33px;cursor:pointer;-moz-border-radius:none;-webket-border-radius:none;}
+#time_organ #frnew{width:88px;position:absolute;right:18px;top:3px;cursor:pointer;}
+/*时间控件底部右边*/
+#time_organ .FootRight{width:136px;border:none;border-left:1px dotted #ccc;margin:0px 0px 0px 156px;}
+.FootRight span{margin-left:28px;cursor:pointer;}
+.FootRight .a5{float:left;width:23px;margin-left:8px;cursor:pointer;}
+.FootRight .a6{width:23px;float:right;cursor:pointer;}
+</style>
+</head>
+<body>
+<!-- 时间控件 -->
+<div class="main" id="timeDiv" style="position:relative;">
+    <label>时间控件：</label>
+	<input type="text" size="30" onfocus="calendartime()" id="showtime"></input>
+</div>
+<!-- 时间控件END -->
+</body>
+</html>
+<script type="text/javascript"><!--
+/**
+ * 月份和年
+ * @param site 左边还是右边
+ * @param 20120217 16:46
+ * 如果site为left,上月,
+ * 否则下月
+ */
+
+function yearMon(site)
+{
+	//下拉框形式,  或者是上下点击的形式。 
+	if(document.getElementById("month") && document.getElementById("year")){
+		var monthobj = document.getElementById("month");
+		var yearobj = document.getElementById("year");
+		//monthobj.options[monthobj.selectedIndex].value;
+		var month = monthobj.options[monthobj.selectedIndex].value;
+		var year = yearobj.options[yearobj.selectedIndex].value;
+	}else{
+		var organMonth = document.getElementById("organMonth");
+		var ym = organMonth.lastChild.innerHTML;
+		// ?!为正则取反,匹配中文,把中文替换成$,在使用$切割得到年份和月份
+		var ym2 = ym.replace(/[?!\u4e00-\u9fa5]/g,"$").split("$");
+		var year = ym2[1];
+		var month = ym2[0];
+		if(site == "left"){
+			if(month == 1){
+				year = year - 1;
+				month = 13;
+			}		
+			month = --month;
+			//organMonth.lastChild.innerHTML = month + '月  ' + year + '年';
+		}else{
+			if(month == 12){
+				year = ++year;
+				month = 0;
+			}		
+			month = ++month;
+			//organMonth.lastChild.innerHTML = month + '月  ' + year + '年';		
+		}	
+	}
+	var sumDay   = new Date(year,month,0).getDate();	//当月的天数
+	var firstDay = new Date(year,month-1,1).getDay();	//当月的第一天的星期值,主要用于日期和星期值相对应和用于计算日期表格的行数
+	var tr_str   = Math.ceil((sumDay + firstDay)/7);	//日期显示的行数,ceil返回大与等于其数字参数的最小整数
+	var c = new calendartime(sumDay,firstDay,tr_str,month,year);
+}
+
+function calendartime(sumDay,firstDay,tr_str,month,year)
+{	
+	//删除input中的value属性
+	var showtime = document.getElementById('showtime');//alert(showtime.nodeValue);
+	//showtime.removeAttribute("value");
+	//showtime.appendChild(document.createTextNode(" "));
+	showtime.value = '';
+	//创建日期对象
+	var d = new Date(); 
+	/*得到今天的日期(年月日时分秒)*/
+	var today = d.toLocaleString();
+	/*存放星期的数组*/
+	var day = new Array('日','一','二','三','四','五','六');
+	var r=1,d = day.length;   //table循环的tr数和td数
+	this.nowDate = new Date().getDate();
+	var nowHours = new Date().getHours();
+	var nowMinutes = new Date().getMinutes();	
+
+	year == undefined ? this.nowYear = new Date().getFullYear() : this.nowYear = year;  //年份
+	month == undefined ? this.nowMonth = new Date().getMonth()+1 : this.nowMonth = month;//月份
+	sumDay == undefined ?　this.sumDay = new Date(this.nowYear,this.nowMonth,0).getDate() : this.sumDay = sumDay; //当月的天数
+	firstDay == undefined ? this.firstDay = new Date(this.nowYear,this.nowMonth-1,1).getDay() : this.firstDay = firstDay; //月1号的星期值
+	tr_str == undefined ? this.tr_str = Math.ceil((this.sumDay + this.firstDay)/7) : this.tr_str = tr_str;   //表格所需要行数
+
+	write(this.sumDay,this.firstDay,this.tr_str,this.nowYear,this.nowMonth);
+	function write(sumDay,firstDay,tr_str,nowYear,nowMonth)
+	{
+		/*在此使用DOM编程写,以此提高DOM编程,加以理解*/
+		var timeDiv = document.getElementById('timeDiv');
+		//防止创建多次time_organ层
+		if(document.getElementById('time_organ')){
+			timeDiv.removeChild(document.getElementById('time_organ'));
+		}
+		var elemente1 = addelement(timeDiv,"div","id","time_organ");
+		var elemente2 = addelement(elemente1,"div","id","organTop");
+						addTextNode(elemente2, today);
+		if (document.getElementById('organTop')) {	
+				//var top = document.getElementById('organTop');	
+				//为什么就要先将document.getElementById('organTop')放进top变量里，要不然timediv层一关就报错了，这是为什么。
+				//放变量里面时间又不会走动。奶奶的!==   可以了，把他的时间戳清除了
+			    this.t = setInterval("document.getElementById('organTop').innerHTML = new Date().toLocaleString();", 1000); 
+		}
+		var elemente3 = addelement(elemente1,"div","class","organMonth");
+						addattr(elemente3,"id","organMonth");
+		var elemente4 = addelement(elemente3,"a","class","a1");
+						addattr(elemente4, "id", "a1" );
+			elemente4.appendChild(document.createTextNode("<<"));
+			//addattr(elemente4,"onclick","yearMon('left')");   兼容IE6和IE7,这个写法只有IE8和FF支持
+			elemente4.onclick = function(){yearMon('left');}
+		var elemente5 = addelement(elemente3,"a","class","a2");
+						addattr(elemente5, "id", "a2");
+			elemente5.appendChild(document.createTextNode(">>"));
+			//addattr(elemente5,"onclick","yearMon('right')");
+			elemente5.onclick = function(){yearMon('right');}
+		var elemente6 = addelement(elemente3,"span","class","MonthCenter");
+			addTextNode(elemente6,nowMonth + '月' + nowYear + '年');
+			addattr(elemente6,"style","line-height:23px");
+			addattr(elemente6,"cssText","line-height:23px");
+			/*中间层,星期和日期*/
+			var elemente16 = addelement(elemente1,"div","class","organCenter");		
+			var organCenterTable = document.createElement("table");
+				elemente16.appendChild(organCenterTable);
+			var tabletbody = document.createElement("tbody");	 //为了兼容IE8以下的浏览器,如果直接把tr追加到table中,会导致table内容不显示
+				/*创建星期tr.th*/
+				for(var i=0;i<r;i++)
+				{
+					var tr = document.createElement("tr");
+						addattr(tr,"class","week");
+					for(var j=0;j<d;j++)
+					{
+						var th = document.createElement("th");
+						var thText = document.createTextNode(day[j]);
+						th.appendChild(thText);
+						tr.appendChild(th);
+						tabletbody.appendChild(tr);
+						organCenterTable.appendChild(tabletbody);
+					}		
+				}
+				/*创建日期tr td	firstDay*/
+				for(var x=0;x<tr_str;x++)
+				{
+					var tr2 = document.createElement("tr");	
+					addattr(tr2,"class","week");
+					/*表格每行的单元数*/	
+					for(var y=0;y<7;y++)
+					{
+						var td = document.createElement("td");
+						var	idx = x*7+y;//序列号(表格行*7加单元数)
+						this.dateStr = idx-firstDay+1;//alert(dateStr);
+						//计算当前的日期(行序列号减去当前月的第一天的星期值加1，得到日期正确的时间值)
+						if(dateStr<=0 || dateStr > sumDay)
+						{
+							//如果当前单元格的序号小于0或者大于当月的最后一天,设置单元格文本为空
+							dateStr = " ";
+						}else
+						{
+							dateStr = idx-firstDay+1;
+							if(td.attachEvent)
+							{
+								//IE监听,执行onclick事件
+								td.attachEvent("onclick",new Function("closeorgan('timeDiv','time_organ','showtime',"+dateStr+")"));
+							}else
+							{
+								//FF监听,执行onclick事件
+								td.setAttribute("onclick","closeorgan('timeDiv','time_organ','showtime',"+dateStr+");");
+							}	
+			
+							/*如果是当前日期,当前日期的单元格为红色*/
+							//if(nowYear == (new Date().getFullYear()) && nowMonth == (new Date().getMonth()+1))	
+							//{	
+								if(nowDate == dateStr)
+								{
+									addattr(td,"class","nowDate");
+								}
+							//}	
+						}	
+						//var tdText = document.createTextNode(dateStr);
+						//td.appendChild(tdText);
+						td.innerHTML = dateStr;
+					    tr2.appendChild(td);
+					    tabletbody.appendChild(tr2);
+					    organCenterTable.appendChild(tabletbody);
+					}
+			    }	
+				
+				/*尾部分钟的选择*/
+				this.elemente7 = addelement(elemente1,"div","class","organFoot");
+					addattr(elemente7,"id","organFoot"); //用于得到时、分传递给hourMin函数
+					/*左边*/		
+				var elemente8 = addelement(elemente7,"div","class","FootLeft"); 
+								addattr(elemente8, "id", "FootLeft");
+				var elemente9 = addelement(elemente8,"a","class","a3");  
+					elemente9.appendChild(document.createTextNode("<<"));
+					//addattr(elemente9,"onclick","hourMin('left','hour')");	
+					elemente9.onclick = function(){hourMin('left','hour');}
+				var elemente10 = addelement(elemente8,"a","class","a4");  
+					elemente10.appendChild(document.createTextNode(">>"));
+					//addattr(elemente10,"onclick","hourMin('right','hour')");
+					elemente10.onclick = function(){hourMin('right','hour');}
+				var elemente11 = addelement(elemente8,"span","style","line-height:23px");
+					addTextNode(elemente11,nowHours + '时');	
+					/*右边*/	
+				var elemente12 = addelement(elemente7,"div","class","FootRight"); 
+								 addattr(elemente12, "id", "FootRight");
+				var elemente13 = addelement(elemente12,"a","class","a5");  
+					elemente13.appendChild(document.createTextNode("<<"));
+					//addattr(elemente13,"onclick","hourMin('left','min')");	
+					elemente13.onclick = function(){hourMin('left','min');}
+				var elemente14 = addelement(elemente12,"a","class","a6");  
+					elemente14.appendChild(document.createTextNode(">>"));
+					//addattr(elemente14,"onclick","hourMin('right','min')");	
+					elemente14.onclick = function(){hourMin('right','min');}
+				var elemente15 = addelement(elemente12,"span","style","line-height:23px");
+					addTextNode(elemente15,nowMinutes + '分');	
+		   };	
+		   document.getElementById("organMonth").ondblclick = function(){
+			   //如果不存在则创建, 存在则不创建   
+			   if(!(document.getElementById("month")) && !(document.getElementById("year"))){
+					var replvala1 = "<select id='month' onchange='yearMon()'>";
+						for(var j=1; j<13;j++){
+							if(j==nowMonth){
+								replvala1 +="<option value="+j+" selected>"+j+"月</option>";
+							}else{	
+								replvala1 +="<option value="+j+">"+j+"月</option>";
+							}
+						}		
+						replvala1 +="</select>";
+					var a1 = document.getElementById("a1");
+					var a2 = document.getElementById("a2");
+					//a1.parentNode.removeChild(a1);
+					var yearmonth = document.getElementById("organMonth");
+					
+					var months = addelement(yearmonth, "select", "id", "month");
+					yearmonth.replaceChild(months, a1);   //替换节点
+					if(months.attachEvent){
+						months.outerHTML = 	replvala1;
+					}else{	
+						months.innerHTML = 	replvala1;
+					}	
+					months.onchange = function(){yearMon();}//用户改变了月份触发事件。
+
+					var replvala2 = "<select id='year'>"; // onchange='yearMon()'
+					for(var y=nowYear, goyear = nowYear+10; y<goyear; y++){
+						if(y==nowYear){
+							replvala2 += "<option value="+y+" selected>"+y+"年</option>";
+						}else{
+							replvala2 += "<option value="+y+">"+y+"年</option>";
+						}
+					}
+					replvala2 += "</select>";
+					var years = addelement(yearmonth, "select", "id", "year");
+					//替换节点和赋值内容到对象的位置不要搞反了,要不然在ie下面就会有两个下拉框框
+					yearmonth.replaceChild(years, a2);   //替换节点
+					
+					//兼容性,ie下用outerHTML,ff下innerHTML有用
+					if(years.attachEvent){
+						years.outerHTML = 	replvala2;
+					}else{
+						years.innerHTML = 	replvala2;
+					}	
+							
+					//years.onchange = function(){yearMon();}//用户改变了年份触发事件。
+			   }
+			}
+		   var fleft = document.getElementById("FootLeft");
+		   fleft.ondblclick = function(){
+			   	  // onchange='yearMon(this.value)'       onchange='this.value=this.selectedIndex;'
+				  var replval = "<select id='flnew' style='width:88px;margin-left:26px;padding-left:26px;margin-top:3px;'>";
+				  for(var h=0;h<=23;h++){	
+					  if(h<10){
+						  if(h==8){
+						  		replval +="<option selected value="+h+">0"+h+"时</option>";
+						  }else{
+							    replval +="<option value="+h+">0"+h+"时</option>";
+						  }	  
+					  }else{	  
+					  	  replval +="<option value="+h+">"+h+"时</option>";
+					  }
+				  }	
+				  replval += "</select>";
+				 fleft.parentNode.removeChild(fleft); 
+				 var footall = document.getElementById("organFoot"); 
+				 var fleftnew = addelement(footall,"select","id","flnew");
+				 //先移除节点再添加节点
+				 if(fleftnew.attachEvent){
+					 fleftnew.outerHTML = replval;
+				 }else{	 
+				 	fleftnew.innerHTML = replval;
+				 }				
+				 //document.write(replval);
+				// footall.appendChild(document.createTextNode(replval));不解析html没用,只好改用innerHTML
+				 //leftnew.appendChild(replval);
+		   }
+		   var fright = document.getElementById("FootRight");
+		   fright.ondblclick = function(){
+			   	  // onchange='yearMon(this.value)'
+				  var replval = "<select id='frnew' style='width:88px;margin-left:26px;padding-left:26px;margin-top:3px;'>";
+				  for(var h=0;h<60;h++){
+					  if(h==0){
+						  replval +="<option selected value="+h+">"+h+"分</option>";
+					  }else{	
+					  	  replval +="<option value="+h+">"+h+"分</option>";
+					  }	
+				  }	
+				  replval += "</select>";
+				  fright.parentNode.removeChild(fright); 
+				 var footall = document.getElementById("organFoot"); 
+				 var frightnew = addelement(footall,"select","id","frnew");
+				 if(frightnew.attachEvent){  
+					 //IE下使用,使用的是元素测试法,因为ff下面没有attachEvent函数,如果有就是ie
+				 	frightnew.outerHTML = replval;
+				 }else{	 
+				 	frightnew.innerHTML = replval;
+				 }
+		   }
+}
+
+/**
+ * 时间控件鼠标移出,时间控件关闭,也就是display:none ; removeChild(timeDiv);
+ * 日期还没有弄好,最好是能把timeDiv(把Dom创建的文档放进timeDiv层)和showtime(文本框显示时间传递到后台)的id层传递过来,不必改程序
+ */
+ function closeorgan(bigDiv,smallDiv,showid,date) {
+	var timeDiv = document.getElementById(bigDiv);
+	var time_organ = document.getElementById(smallDiv);
+	var showtime = document.getElementById(showid);
+		
+	var foot = document.getElementById("organFoot");
+
+	var footHour, footMin;
+	//得到小时    FootLeft点击得到的小时,	flnew下拉框select选择的小时, 使用对象是否存在的方式判断是下拉框值还是div值
+	if(document.getElementById("FootLeft")){
+		var footHour = foot.firstChild.lastChild.innerHTML; 
+	}else{
+		var flnewobj = document.getElementById("flnew");
+		var footHour = flnewobj.options[flnewobj.selectedIndex].value;  //为了便于和FootLeft统一,都要去除中文得到数字,所以不直接使用下标值
+		//alert(flnewobj.tagName);
+		//alert(flnewobj.options[flnewobj.selectedIndex].value);
+		//var footHour = flnewobj.selectedIndex;	
+	}
+	//得到分钟值  
+	if(document.getElementById("FootRight")){
+		var footMin = foot.lastChild.lastChild.innerHTML;
+	}else{
+		var frnew = document.getElementById("frnew");
+		var footMin =frnew.options[frnew.selectedIndex].value;
+	}
+	
+	var hour = footHour.replace(/[?!\u4e00-\u9fa5]/g,"$").split("$");
+	var min	= footMin.replace(/[?!\u4e00-\u9fa5]/g,"$").split("$");
+	var organMonth = document.getElementById("organMonth");
+	var ym = organMonth.lastChild.innerHTML;
+	// ?!为正则取反,匹配中文,把中文替换成$,在使用$切割得到年份和月份
+	var ym2 = ym.replace(/[?!\u4e00-\u9fa5]/g,"$").split("$");
+	//把用户选择的时间放入文本框中			
+	//showtime.setAttribute("value",ym2[1] + '-' + ym2[0] + ' ' + hour[0] + ':' + min[0]);
+	//showtime.appendChild(document.createTextNode(ym2[1] + '-' + ym2[0] + ' ' + hour[0] + ':' + min[0]));
+	//隐藏时间控件层
+	showtime.value = ym2[1] + '-' + ym2[0] + '-'+ date + ' '+ hour[0] + ':' + min[0];
+	timeDiv.removeChild(time_organ);
+	clearInterval(this.t);   //清除时间戳
+ }	 
+/*创建元素*/
+function addelement(parante,element,id,attr) {
+	//alert(navigator.userAgent.toLowerCase().indexOf("msie"));
+	//alert(navigator.appVersion.split(";")[1]);
+	var elemente = document.createElement(element);
+		elemente.setAttribute(id,attr);
+		if ((id == 'class' || id == 'style')&& navigator.appName == 'Microsoft Internet Explorer') {
+			//检测浏览器,IE浏览器不支持setAttribute("class",'');需写成setAttribute("className","");
+			var version = navigator.appVersion.split(";")[1].replace(/[ ]/g,"");
+			if(version == 'MSIE6.0' || version == 'MSIE7.0') {
+				id == 'class' ? elemente.setAttribute(id+'Name',attr) : elemente.setAttribute('cssText',attr);
+			}	
+		}	
+	    parante.appendChild(elemente);
+	    return elemente;
+}
+/*添加一个文本节点*/
+function addTextNode(e,text){
+	var eText = document.createTextNode(text);
+	e.appendChild(eText);
+}
+/*添加属性*/
+function addattr(e,id,attr){
+	e.setAttribute(id,attr);
+	if (id == 'class' && navigator.appName == 'Microsoft Internet Explorer') {
+		//检测浏览器,IE浏览器不支持setAttribute("class",'');需写成setAttribute("className","");
+		var version = navigator.appVersion.split(";")[1].replace(/[ ]/g,"");
+		if (version == 'MSIE6.0' || version == 'MSIE7.0') {
+			id == 'class' ? e.setAttribute(id+'Name',attr) : e.setAttribute('cssText',attr);
+		}
+	}
+}
+/**
+ * 时分
+ * @param 时	    通过节点innerHTML得到
+ * @param 分      通过节点innerHTML得到
+ * @param 左边 or 右边(减   or 加)
+ * @param 时 or 分 (时 or 分触发的函数)
+ * @author huangling 20120217 13:17 
+ * 
+ * 如果是left,减;如果是right,加;
+ * 如果是hour：时;
+ * 如果是min:  分;如果一直减到0,分变成60;如果一直加到60,分变成0
+ */
+function hourMin(site,time){
+	var foot = document.getElementById("organFoot");
+	var footHour = foot.firstChild.lastChild.innerHTML; //得到小时
+	var footMin = foot.lastChild.lastChild.innerHTML;	//得到分钟
+	//var re = /^\d+$/;
+	//alert(re.exec(footMin));return;     footHour.split(",");alert(footHour);
+	//切割中文,过滤中文,只要数字,得到时间
+	//var hour = re.exec(footHour);alert(hour);
+	var hour = footHour.replace(/[?!\u4e00-\u9fa5]/g,"$").split("$");
+	var footHour = hour[0];
+	var min = footMin.slice(0,-1);
+	if (time == "hour") {
+		if (site == "left") {
+			if (footHour == 1) {	 
+				 footHour = 25;
+			 }
+			 footHour = --footHour	 	
+		} else {
+			if (footHour >= 24) {
+				footHour = 0;
+			}
+			footHour = ++footHour;
+		}		
+		foot.firstChild.lastChild.innerHTML = footHour + "时";		
+	}else if (time == "min") {
+		if (site == "left") { 
+			 if (min == 0) {	 
+				 min = 60;
+			 }
+			 footMin = --min;	 
+		} else {
+			if (min >= 59) {
+				min = -1;
+			}
+			footMin = ++min; //alert(typeof footMin);		
+		}		
+		foot.lastChild.lastChild.innerHTML = footMin + '分';	
+	}	
+}
+--></script>
